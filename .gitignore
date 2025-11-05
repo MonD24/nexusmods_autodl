@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Debug screenshots
+debug_*.png
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# User-specific button screenshots (keep as example in README)
+# Uncomment if you want to exclude them:
+# button.png
+# browser_button.png
