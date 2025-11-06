@@ -11,13 +11,9 @@ VORTEX_WINDOW_KEYWORD = "Vortex"
 BROWSER_WINDOW_KEYWORD = "Chrome"
 BUTTON_IMAGE = "button.png"  # Кнопка в Vortex
 BROWSER_BUTTON_IMAGE = "browser_button.png"  # Кнопка в браузере
-MOD_NAME_IMAGE = "mod_name.png"  # Скриншот области с названием мода (для сравнения)
 CONFIDENCE_LEVEL = 0.55  # Порог совпадения (чем ниже, тем менее строгий поиск)
 DEBUG_SCREENSHOTS = False  # Сохранять скриншоты для отладки (отключено для скорости)
 pyautogui.PAUSE = 0.5  # Пауза между действиями pyautogui
-
-# Для отслеживания предыдущего мода
-previous_mod_screenshot = None
 
 # Поиск процесса Vortex
 vortex_pid = None
@@ -89,12 +85,23 @@ def activate_window(window, window_name="Окно"):
         window.maximize()
         return True
 
+# Первоначальная активация Vortex
+print("\n--- Первоначальная активация Vortex ---")
+activate_window(vortex_window, "Vortex")
+print("Ожидание 2 секунды...")
+time.sleep(2)
+
+first_iteration = True
+
 while True:
-    # 1. Активируем Vortex и ищем кнопку
-    print("\n--- Цикл: Активация Vortex ---")
-    activate_window(vortex_window, "Vortex")
-    print("Ожидание 2 секунды перед поиском кнопки...")
-    time.sleep(2)
+    # 1. Ищем кнопку в Vortex (не активируем окно каждый раз - оно откроется само)
+    if not first_iteration:
+        print("\n--- Цикл: Проверка Vortex ---")
+        print("Ожидание 2 секунды перед поиском кнопки...")
+        time.sleep(2)
+    else:
+        print("\n--- Цикл: Первый поиск кнопки ---")
+        first_iteration = False
     
     # Сохраним скриншот для отладки
     if DEBUG_SCREENSHOTS:
@@ -112,33 +119,6 @@ while True:
             print(f"ОШИБКА: Файл {BUTTON_IMAGE} не найден! Создайте скриншот кнопки.")
             button_location = None
         else:
-            # Проверяем, изменилось ли название мода
-            # Делаем скриншот области с названием мода (координаты нужно настроить)
-            # Примерные координаты названия мода на вашем скриншоте
-            mod_name_region = (140, 80, 360, 120)  # (left, top, right, bottom) - настройте под ваш экран
-            current_mod_screenshot = pyautogui.screenshot(region=mod_name_region)
-            
-            # Сравниваем с предыдущим скриншотом
-            mod_changed = True
-            
-            if previous_mod_screenshot is not None:
-                # Сравниваем изображения
-                diff = ImageChops.difference(previous_mod_screenshot, current_mod_screenshot)
-                if diff.getbbox() is None:
-                    # Изображения идентичны - мод не изменился
-                    mod_changed = False
-                    print("⚠ Название мода не изменилось. Пропускаю нажатие кнопки.")
-                else:
-                    print("✓ Обнаружен новый мод!")
-                    previous_mod_screenshot = current_mod_screenshot
-            else:
-                print("Первый запуск - сохраняю название мода.")
-                previous_mod_screenshot = current_mod_screenshot
-            
-            if not mod_changed:
-                button_location = None
-                time.sleep(2)
-                continue
             # Пробуем найти с разными порогами (более строгие значения)
             button_location = None
             for confidence in [CONFIDENCE_LEVEL, CONFIDENCE_LEVEL - 0.05, CONFIDENCE_LEVEL - 0.1]:
@@ -166,23 +146,9 @@ while True:
         pyautogui.moveTo(button_location)
         pyautogui.click()
         print("Кнопка в Vortex нажата! Ожидаю автоматического открытия браузера...")
-        time.sleep(5)  # Ждём, пока браузер откроется автоматически
         
-        # 2. Ищем окно браузера (оно должно открыться автоматически)
-        print("\n--- Поиск окна браузера ---")
-        browser_windows = gw.getWindowsWithTitle(BROWSER_WINDOW_KEYWORD)
-        if browser_windows:
-            browser_window = browser_windows[0]
-            activate_window(browser_window, "Chrome")
-            time.sleep(2)
-        else:
-            print("Окно браузера не найдено, возможно ещё не открылось. Жду ещё 3 секунды...")
-            time.sleep(3)
-            browser_windows = gw.getWindowsWithTitle(BROWSER_WINDOW_KEYWORD)
-            if browser_windows:
-                browser_window = browser_windows[0]
-                activate_window(browser_window, "Chrome")
-                time.sleep(2)
+        # 2. Ждём, пока браузер откроется автоматически
+        print("\n--- Ожидание открытия браузера (он откроется сам после клика) ---")
         
         # Ждем появления кнопки в браузере (до 10 попыток по 2 секунды)
         browser_button_found = False
@@ -199,8 +165,6 @@ while True:
                 pyautogui.click()
                 print("Кнопка в браузере нажата! Возвращаюсь в Vortex и жду новую кнопку...")
                 browser_button_found = True
-                # Сбрасываем previous_mod_screenshot, чтобы следующий мод считался новым
-                previous_mod_screenshot = None
                 time.sleep(2)
                 break
             else:

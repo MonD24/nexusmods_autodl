@@ -23,6 +23,9 @@ ENV/
 debug_*.png
 *.log
 
+# Downloaded mods list
+downloaded_mods.txt
+
 # OS
 .DS_Store
 Thumbs.db
